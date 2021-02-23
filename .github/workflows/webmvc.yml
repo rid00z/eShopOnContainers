@@ -25,7 +25,7 @@ env:
   REGISTRY_NAME: appmodreg
   CLUSTER_NAME: appmod22
   CLUSTER_RESOURCE_GROUP: appmod
-  NAMESPACE: deafult
+  NAMESPACE: default
   SECRET: webmvcsecret
   APP_NAME: webmvc
   
@@ -113,7 +113,6 @@ jobs:
         container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
         secret-name: ${{ env.SECRET }}
         namespace: ${{ env.NAMESPACE }}
-        force: true
     
     # Deploy app to AKS
     - uses: azure/k8s-deploy@v1
