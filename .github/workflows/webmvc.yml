@@ -22,7 +22,13 @@ on:
 env:
   SERVICE: webmvc
   IMAGE: webmvc
-
+  REGISTRY_NAME: appmodreg
+  CLUSTER_NAME: appmod22
+  CLUSTER_RESOURCE_GROUP: appmod
+  NAMESPACE: deafult
+  SECRET: webmvcsecret
+  APP_NAME: webmvc
+  
 jobs:
 
   BuildContainersForPR_Linux:
@@ -91,3 +97,32 @@ jobs:
         docker --config ~/.docker manifest create ${{ secrets.REGISTRY_LOGIN_SERVER  }}/${{ env.IMAGE  }}:${{ env.BRANCH  }} ${{ secrets.REGISTRY_LOGIN_SERVER  }}/${{ env.IMAGE  }}:linux-${{ env.BRANCH  }}
         docker --config ~/.docker manifest push ${{ secrets.REGISTRY_LOGIN_SERVER  }}/${{ env.IMAGE  }}:${{ env.BRANCH  }}
       shell: bash
+      
+      # Set the target Azure Kubernetes Service (AKS) cluster. 
+    - uses: azure/aks-set-context@v1
+      with:
+        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        cluster-name: ${{ env.CLUSTER_NAME }}
+        resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
+        
+        # Create image pull secret for ACR
+    - uses: azure/k8s-create-secret@v1
+      with:
+        container-registry-url: ${{ env.REGISTRY_NAME }}.azurecr.io
+        container-registry-username: ${{ secrets.REGISTRY_USERNAME }}
+        container-registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+        secret-name: ${{ env.SECRET }}
+        namespace: ${{ env.NAMESPACE }}
+        force: true
+    
+    # Deploy app to AKS
+    - uses: azure/k8s-deploy@v1
+      with:
+        manifests: |
+          manifests/deployment.yml
+          manifests/service.yml
+        images: |
+          ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.APP_NAME }}:${{ github.sha }}
+        imagepullsecrets: |
+          ${{ env.SECRET }}
+        
